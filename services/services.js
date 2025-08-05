@@ -42,7 +42,7 @@ const getAllAircraftList = async () => {
             ? { Authorization: `Bearer ${token}` }
             : {};
 
-        const response = await fetch('https://opensky-network.org/api/states/all?lamin=25&lomin=100&lamax=48&lomax=150', {
+        const response = await fetch('https://opensky-network.org/api/states/all', {
             method: 'GET',
             headers,
         });

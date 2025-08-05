@@ -22,4 +22,4 @@ jobs:
         run: npm install
 
       - name: Run OpenSky fetch and save script
-        run: node ./scripts/index.js
+        run: node ./index.js

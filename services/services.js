@@ -91,20 +91,44 @@ export const saveJsonTempAndUpload = async () => {
         const filename = `${time}.json`;
         const tempDir = './temp';
 
-        if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir);
-        }
+        fs.mkdirSync(tempDir, { recursive: true });
 
         const localPath = path.resolve(tempDir, filename);
-
         fs.writeFileSync(localPath, JSON.stringify(data, null, 2), 'utf-8');
         console.log(`📄 임시 JSON 파일 생성: ${localPath}`);
 
         await uploadToSFTP(localPath, filename);
 
         // 업로드 성공하면 삭제
-        fs.unlinkSync(localPath);
-        console.log(`🧹 임시 파일 삭제 완료: ${localPath}`);
+        try {
+            fs.unlinkSync(localPath);
+            console.log(`🧹 임시 파일 삭제 완료: ${localPath}`);
+        } catch (deleteErr) {
+            console.error(`❌ 임시 파일 삭제 실패: ${localPath}`, deleteErr);
+        }
+
+        // 오래된 파일 삭제
+        const files = fs.readdirSync(tempDir)
+            .filter(file => file.endsWith('.json'))
+            .sort((a, b) => {
+                const aTime = parseInt(a.replace('.json', ''));
+                const bTime = parseInt(b.replace('.json', ''));
+                return bTime - aTime;
+            });
+
+        if (files.length > 100) {
+            const filesToDelete = files.slice(100);
+            for (const file of filesToDelete) {
+                const filePath = path.resolve(tempDir, file);
+                try {
+                    fs.unlinkSync(filePath);
+                    console.log(`🗑️ 오래된 파일 삭제: ${filePath}`);
+                } catch (err) {
+                    console.error(`❌ 파일 삭제 실패: ${filePath}`, err);
+                }
+            }
+        }
+
     } catch (err) {
         console.error('❌ 전체 처리 실패:', err);
     }

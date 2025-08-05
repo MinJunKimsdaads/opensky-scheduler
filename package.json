@@ -1,0 +1,29 @@
+{
+  "name": "opensky-scheduler",
+  "version": "1.0.0",
+  "description": "opensky-scheduler",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MinJunKimsdaads/opensky-scheduler.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MinJunKimsdaads/opensky-scheduler/issues"
+  },
+  "homepage": "https://github.com/MinJunKimsdaads/opensky-scheduler#readme",
+  "dependencies": {
+    "basic-ftp": "^5.0.5",
+    "dotenv": "^17.2.1",
+    "fs": "^0.0.1-security",
+    "node-cron": "^4.2.1",
+    "node-fetch": "^3.3.2",
+    "path": "^0.12.7",
+    "ssh2-sftp-client": "^12.0.1"
+  }
+}

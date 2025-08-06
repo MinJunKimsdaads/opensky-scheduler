@@ -3,6 +3,9 @@ import fs from 'fs';
 import path from "path";
 import ftp from 'basic-ftp';
 import {TOKEN_URL,AIRCRAFT_ALL_URL} from '../constant/apiConstant.js';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 //opensky file open token
 const getAccessToken = async () => {
@@ -19,11 +22,9 @@ const getAccessToken = async () => {
             },
             body: params.toString(),
         });
-
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-
         const data = await response.json();
         return data.access_token;
     } catch (error) {

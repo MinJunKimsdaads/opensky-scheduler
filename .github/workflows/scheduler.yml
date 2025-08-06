@@ -2,13 +2,12 @@ name: OpenSky Data Scheduler
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # 매 10분마다 실행 (UTC 기준)
+    - cron: '*/8 * * * *'   # 매 8분마다 실행 (UTC 기준)
   workflow_dispatch:         # 수동 실행 가능
 
 jobs:
   fetch-and-save:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3

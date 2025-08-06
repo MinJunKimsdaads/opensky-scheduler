@@ -3,9 +3,11 @@ import fs from 'fs';
 import path from "path";
 import ftp from 'basic-ftp';
 import dotenv from "dotenv";
+import {TOKEN_URL,AIRCRAFT_ALL_URL} from '../constant/apiConstant';
 
 dotenv.config();
 
+//opensky file open token
 const getAccessToken = async () => {
     try {
         const params = new URLSearchParams();
@@ -13,7 +15,7 @@ const getAccessToken = async () => {
         params.append('client_id', process.env.OPENSKY_CLIENT_ID);
         params.append('client_secret', process.env.OPENSKY_CLIENT_SECRET);
 
-        const response = await fetch('https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token', {
+        const response = await fetch(TOKEN_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -33,7 +35,7 @@ const getAccessToken = async () => {
     }
 }
 
-
+//opensky
 const getAllAircraftList = async () => {
     try {
         const token = await getAccessToken();
@@ -42,7 +44,7 @@ const getAllAircraftList = async () => {
             ? { Authorization: `Bearer ${token}` }
             : {};
 
-        const response = await fetch('https://opensky-network.org/api/states/all', {
+        const response = await fetch(AIRCRAFT_ALL_URL, {
             method: 'GET',
             headers,
         });
@@ -71,8 +73,6 @@ const uploadToSFTP = async (localPath, filename) => {
             secure: false, // FTPS가 아닌 경우 false
         });
         const remotePath = path.posix.join(process.env.SFTP_PATH, filename);
-        console.log(remotePath);
-        // await client.cd(process.env.SFTP_PATH) // 'html' 디렉토리로 이동
         await client.uploadFrom(localPath, remotePath);
         console.log('FTP 업로드 성공');
     } catch(err){

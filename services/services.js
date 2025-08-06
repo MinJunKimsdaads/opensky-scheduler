@@ -2,8 +2,10 @@ import fetch from "node-fetch";
 import fs from 'fs';
 import path from "path";
 import ftp from 'basic-ftp';
+import zlib from 'zlib';
 import {TOKEN_URL,AIRCRAFT_ALL_URL} from '../constant/apiConstant.js';
 import dotenv from 'dotenv';
+import { Readable } from 'stream';
 
 dotenv.config();
 
@@ -67,7 +69,7 @@ const uploadToSFTP = async (localPath, filename) => {
             host: process.env.SFTP_HOST,
             user: process.env.SFTP_USERNAME,
             password: process.env.SFTP_PASSWORD,
-            port: process.env.SFTP_PORT, // FTP 포트
+            port: process.env.SFTP_PORT,
             secure: false, // FTPS가 아닌 경우 false
         });
         const remotePath = path.posix.join(process.env.SFTP_PATH, filename);
@@ -84,20 +86,33 @@ export const saveJsonTempAndUpload = async () => {
     try {
         const data = await getAllAircraftList();
         const time = data.time;
-        if (!time) throw new Error('time 값이 없습니다.');
+        if (!time) throw new Error('❌ time 값이 없습니다.');
 
-        const filename = `${time}.json`;
+        const filename = `${time}.json.gz`; // 확장자 변경
         const tempDir = './temp';
-
         fs.mkdirSync(tempDir, { recursive: true });
 
         const localPath = path.resolve(tempDir, filename);
-        fs.writeFileSync(localPath, JSON.stringify(data, null, 2), 'utf-8');
-        console.log(`📄 임시 JSON 파일 생성: ${localPath}`);
+
+        // JSON → gzip 압축하여 저장
+        const jsonString = JSON.stringify(data, null, 2);
+        const gzip = zlib.createGzip();
+        const writeStream = fs.createWriteStream(localPath);
+        const readStream = Readable.from([jsonString]);
+
+        await new Promise((resolve, reject) => {
+            readStream
+                .pipe(gzip)
+                .pipe(writeStream)
+                .on('finish', resolve)
+                .on('error', reject);
+        });
+
+        console.log(`📦 압축된 JSON 파일 생성: ${localPath}`);
 
         await uploadToSFTP(localPath, filename);
 
-        // 업로드 성공하면 삭제
+        // 업로드 후 파일 삭제
         try {
             fs.unlinkSync(localPath);
             console.log(`🧹 임시 파일 삭제 완료: ${localPath}`);
@@ -105,12 +120,12 @@ export const saveJsonTempAndUpload = async () => {
             console.error(`❌ 임시 파일 삭제 실패: ${localPath}`, deleteErr);
         }
 
-        // 오래된 파일 삭제
+        // 오래된 파일 정리 (.json.gz 기준)
         const files = fs.readdirSync(tempDir)
-            .filter(file => file.endsWith('.json'))
+            .filter(file => file.endsWith('.json.gz'))
             .sort((a, b) => {
-                const aTime = parseInt(a.replace('.json', ''));
-                const bTime = parseInt(b.replace('.json', ''));
+                const aTime = parseInt(a.replace('.json.gz', ''));
+                const bTime = parseInt(b.replace('.json.gz', ''));
                 return bTime - aTime;
             });
 

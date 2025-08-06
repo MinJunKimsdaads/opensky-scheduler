@@ -2,7 +2,7 @@ import fetch from "node-fetch";
 import fs from 'fs';
 import path from "path";
 import ftp from 'basic-ftp';
-import {TOKEN_URL,AIRCRAFT_ALL_URL} from '../constant/apiConstant';
+import {TOKEN_URL,AIRCRAFT_ALL_URL} from '../constant/apiConstant.js';
 
 //opensky file open token
 const getAccessToken = async () => {

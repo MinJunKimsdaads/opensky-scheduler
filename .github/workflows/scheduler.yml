@@ -8,6 +8,14 @@ on:
 jobs:
   fetch-and-save:
     runs-on: ubuntu-latest
+    env:
+      OPENSKY_CLIENT_ID: ${{ vars.OPENSKY_CLIENT_ID }}
+      OPENSKY_CLIENT_SECRET: ${{ vars.OPENSKY_CLIENT_SECRET }}
+      SFTP_HOST: ${{ vars.SFTP_HOST }}
+      SFTP_PASSWORD: ${{ vars.SFTP_PASSWORD }}
+      SFTP_PATH: ${{ vars.SFTP_PATH }}
+      SFTP_PORT: ${{ vars.SFTP_PORT }}
+      SFTP_USERNAME: ${{ vars.SFTP_USERNAME }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3

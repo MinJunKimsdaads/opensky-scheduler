@@ -74,7 +74,21 @@ const uploadToSFTP = async (localPath, filename) => {
         });
         const remotePath = path.posix.join(process.env.SFTP_PATH, filename);
         await client.uploadFrom(localPath, remotePath);
-        console.log('FTP 업로드 성공');
+        // console.log('FTP 업로드 성공');
+        await client.cd(process.env.SFTP_PATH);
+        const list = await client.list();
+        if(list.length > 100){
+            const files = list
+            .sort((a, b) => {
+                const aTime = parseInt(a.name.replace('.json.gz', ''));
+                const bTime = parseInt(b.name.replace('.json.gz', ''));
+                return bTime - aTime;
+            });
+            const filesToDelete = list.slice(100);
+            for (const file of filesToDelete) {
+                await client.remove(file.name);
+            }
+        }
     } catch(err){
         console.error(err);
     } finally{
@@ -108,8 +122,6 @@ export const saveJsonTempAndUpload = async () => {
                 .on('error', reject);
         });
 
-        console.log(`📦 압축된 JSON 파일 생성: ${localPath}`);
-
         await uploadToSFTP(localPath, filename);
 
         // 업로드 후 파일 삭제
@@ -121,26 +133,27 @@ export const saveJsonTempAndUpload = async () => {
         }
 
         // 오래된 파일 정리 (.json.gz 기준)
-        const files = fs.readdirSync(tempDir)
-            .filter(file => file.endsWith('.json.gz'))
-            .sort((a, b) => {
-                const aTime = parseInt(a.replace('.json.gz', ''));
-                const bTime = parseInt(b.replace('.json.gz', ''));
-                return bTime - aTime;
-            });
+        // const files = fs.readdirSync(tempDir)
+        //     .filter(file => file.endsWith('.json.gz'))
+        //     .sort((a, b) => {
+        //         const aTime = parseInt(a.replace('.json.gz', ''));
+        //         const bTime = parseInt(b.replace('.json.gz', ''));
+        //         return bTime - aTime;
+        //     });
 
-        if (files.length > 100) {
-            const filesToDelete = files.slice(100);
-            for (const file of filesToDelete) {
-                const filePath = path.resolve(tempDir, file);
-                try {
-                    fs.unlinkSync(filePath);
-                    console.log(`🗑️ 오래된 파일 삭제: ${filePath}`);
-                } catch (err) {
-                    console.error(`❌ 파일 삭제 실패: ${filePath}`, err);
-                }
-            }
-        }
+        // if (files.length > 100) {
+        //     const filesToDelete = files.slice(100);
+        //     for (const file of filesToDelete) {
+        //         const filePath = path.resolve(tempDir, file);
+        //         try {
+        //             console.log(filePath);
+        //             fs.unlinkSync(filePath);
+        //             console.log(`🗑️ 오래된 파일 삭제: ${filePath}`);
+        //         } catch (err) {
+        //             console.error(`❌ 파일 삭제 실패: ${filePath}`, err);
+        //         }
+        //     }
+        // }
 
     } catch (err) {
         console.error('❌ 전체 처리 실패:', err);

@@ -1,64 +1,41 @@
 import fetch from "node-fetch";
 import fs from 'fs';
 import path from "path";
-import ftp from 'basic-ftp';
-import zlib from 'zlib';
 import {TOKEN_URL,AIRCRAFT_ALL_URL} from '../constant/apiConstant.js';
 import dotenv from 'dotenv';
-import { Readable } from 'stream';
 
 dotenv.config();
 
-//opensky file open token
+// OpenSky API 토큰 발급
 const getAccessToken = async () => {
-    try {
-        const params = new URLSearchParams();
-        params.append('grant_type', 'client_credentials');
-        params.append('client_id', process.env.OPENSKY_CLIENT_ID);
-        params.append('client_secret', process.env.OPENSKY_CLIENT_SECRET);
+  const params = new URLSearchParams();
+  params.append("grant_type", "client_credentials");
+  params.append("client_id", process.env.OPENSKY_CLIENT_ID);
+  params.append("client_secret", process.env.OPENSKY_CLIENT_SECRET);
 
-        const response = await fetch(TOKEN_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: params.toString(),
-        });
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        return data.access_token;
-    } catch (error) {
-        console.warn(error);
-        return null; // fallback 처리
-    }
-}
+  const response = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
 
-//opensky
+  if (!response.ok) {
+    throw new Error(`Token request failed: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.access_token;
+};
+
+// OpenSky 전체 항공기 리스트
 const getAllAircraftList = async () => {
-    try {
-        const token = await getAccessToken();
+  const token = await getAccessToken();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-        const headers = token
-            ? { Authorization: `Bearer ${token}` }
-            : {};
-
-        const response = await fetch(AIRCRAFT_ALL_URL, {
-            method: 'GET',
-            headers,
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.warn(error);
-        throw error;
-    }
+  const response = await fetch(AIRCRAFT_ALL_URL, { headers });
+  if (!response.ok) {
+    throw new Error(`Aircraft list request failed: ${response.status}`);
+  }
+  return await response.json();
 };
 
 const uploadToSFTP = async (localPath, filename) => {
@@ -96,66 +73,31 @@ const uploadToSFTP = async (localPath, filename) => {
     }
 }
 
-export const saveJsonTempAndUpload = async () => {
-    try {
-        const data = await getAllAircraftList();
-        const time = data.time;
-        if (!time) throw new Error('❌ time 값이 없습니다.');
+export const saveJsonAndManage = async () => {
+  const data = await getAllAircraftList();
+  const time = data.time;
+  if (!time) throw new Error("time 값 없음");
 
-        const filename = `${time}.json.gz`; // 확장자 변경
-        const tempDir = './temp';
-        fs.mkdirSync(tempDir, { recursive: true });
+  const filename = `${time}.json`;
+  const dataDir = "./data";
+  fs.mkdirSync(dataDir, { recursive: true });
 
-        const localPath = path.resolve(tempDir, filename);
+  const filePath = path.resolve(dataDir, filename);
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+  console.log(`✅ 파일 저장: ${filePath}`);
 
-        // JSON → gzip 압축하여 저장
-        const jsonString = JSON.stringify(data, null, 2);
-        const gzip = zlib.createGzip();
-        const writeStream = fs.createWriteStream(localPath);
-        const readStream = Readable.from([jsonString]);
+  // 100개 이상이면 오래된 파일 삭제
+  const files = fs
+    .readdirSync(dataDir)
+    .filter((f) => f.endsWith(".json"))
+    .sort((a, b) => parseInt(a) - parseInt(b)); // 오래된 순
 
-        await new Promise((resolve, reject) => {
-            readStream
-                .pipe(gzip)
-                .pipe(writeStream)
-                .on('finish', resolve)
-                .on('error', reject);
-        });
-
-        await uploadToSFTP(localPath, filename);
-
-        // 업로드 후 파일 삭제
-        try {
-            fs.unlinkSync(localPath);
-            console.log(`🧹 임시 파일 삭제 완료: ${localPath}`);
-        } catch (deleteErr) {
-            console.error(`❌ 임시 파일 삭제 실패: ${localPath}`, deleteErr);
-        }
-
-        // 오래된 파일 정리 (.json.gz 기준)
-        // const files = fs.readdirSync(tempDir)
-        //     .filter(file => file.endsWith('.json.gz'))
-        //     .sort((a, b) => {
-        //         const aTime = parseInt(a.replace('.json.gz', ''));
-        //         const bTime = parseInt(b.replace('.json.gz', ''));
-        //         return bTime - aTime;
-        //     });
-
-        // if (files.length > 100) {
-        //     const filesToDelete = files.slice(100);
-        //     for (const file of filesToDelete) {
-        //         const filePath = path.resolve(tempDir, file);
-        //         try {
-        //             console.log(filePath);
-        //             fs.unlinkSync(filePath);
-        //             console.log(`🗑️ 오래된 파일 삭제: ${filePath}`);
-        //         } catch (err) {
-        //             console.error(`❌ 파일 삭제 실패: ${filePath}`, err);
-        //         }
-        //     }
-        // }
-
-    } catch (err) {
-        console.error('❌ 전체 처리 실패:', err);
+  if (files.length > 100) {
+    const deleteCount = files.length - 100;
+    for (let i = 0; i < deleteCount; i++) {
+      const delPath = path.resolve(dataDir, files[i]);
+      fs.unlinkSync(delPath);
+      console.log(`🗑️ 삭제: ${delPath}`);
     }
+  }
 };

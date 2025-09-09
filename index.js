@@ -1,18 +1,9 @@
 import cron from 'node-cron';
-import { saveJsonTempAndUpload } from "./services/services.js";
-
-// 3분마다 실행
-// cron.schedule('*/15 * * * *', async () => {
-//     try {
-//         await saveJsonTempAndUpload();
-//     } catch (err) {
-//         console.error('❌ 스케줄러 에러 발생:', err);
-//     }
-// });
+import { saveJsonAndManage } from "./services/services.js";
 
 async function main() {
   try {
-    await saveJsonTempAndUpload();
+    await saveJsonAndManage();
     console.log('✅ 데이터 저장 성공');
   } catch (err) {
     console.error('❌ 스케줄러 실행 중 에러:', err);

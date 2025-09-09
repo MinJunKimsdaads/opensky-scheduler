@@ -38,41 +38,6 @@ const getAllAircraftList = async () => {
   return await response.json();
 };
 
-const uploadToSFTP = async (localPath, filename) => {
-    const client = new ftp.Client();
-    client.ftp.verbose = true;
-    try {
-        await client.access({
-            host: process.env.SFTP_HOST,
-            user: process.env.SFTP_USERNAME,
-            password: process.env.SFTP_PASSWORD,
-            port: process.env.SFTP_PORT,
-            secure: false, // FTPS가 아닌 경우 false
-        });
-        const remotePath = path.posix.join(process.env.SFTP_PATH, filename);
-        await client.uploadFrom(localPath, remotePath);
-        // console.log('FTP 업로드 성공');
-        await client.cd(process.env.SFTP_PATH);
-        const list = await client.list();
-        if(list.length > 100){
-            const files = list
-            .sort((a, b) => {
-                const aTime = parseInt(a.name.replace('.json.gz', ''));
-                const bTime = parseInt(b.name.replace('.json.gz', ''));
-                return bTime - aTime;
-            });
-            const filesToDelete = list.slice(100);
-            for (const file of filesToDelete) {
-                await client.remove(file.name);
-            }
-        }
-    } catch(err){
-        console.error(err);
-    } finally{
-        client.close();
-    }
-}
-
 export const saveJsonAndManage = async () => {
   const data = await getAllAircraftList();
   const time = data.time;

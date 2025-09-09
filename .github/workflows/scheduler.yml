@@ -9,9 +9,9 @@ jobs:
   fetch-and-save:
     runs-on: ubuntu-latest
     env:
-      OPENSKY_CLIENT_ID: ${{ var.OPENSKY_CLIENT_ID }}
-      OPENSKY_CLIENT_SECRET: ${{ var.OPENSKY_CLIENT_SECRET }}
-      PAT_TOKEN: ${{ var.PERSONAL_ACCESS_TOKEN }}  # Personal Access Token
+      OPENSKY_CLIENT_ID: ${{ vars.OPENSKY_CLIENT_ID }}
+      OPENSKY_CLIENT_SECRET: ${{ vars.OPENSKY_CLIENT_SECRET }}
+      PAT_TOKEN: ${{ vars.PERSONAL_ACCESS_TOKEN }}  # Personal Access Token
     steps:
       - name: Checkout scheduler repo
         uses: actions/checkout@v3

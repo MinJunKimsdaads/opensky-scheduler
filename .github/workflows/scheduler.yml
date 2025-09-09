@@ -11,7 +11,7 @@ jobs:
     env:
       OPENSKY_CLIENT_ID: ${{ vars.OPENSKY_CLIENT_ID }}
       OPENSKY_CLIENT_SECRET: ${{ vars.OPENSKY_CLIENT_SECRET }}
-      PAT_TOKEN: ${{ vars.PERSONAL_ACCESS_TOKEN }}  # Personal Access Token
+      PAT_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # Personal Access Token
     steps:
       - name: Checkout scheduler repo
         uses: actions/checkout@v3
@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: MinJunKimsdaads/flight-data-repo
-          token: ${{ vars.PERSONAL_ACCESS_TOKEN }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           path: flight-data-repo
 
       # 데이터 복사

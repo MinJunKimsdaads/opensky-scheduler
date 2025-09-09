@@ -2,7 +2,7 @@ name: OpenSky Data Scheduler
 
 on:
   schedule:
-    - cron: "*/2 * * * *"   # 2분마다 실행 (UTC)
+    - cron: "*/5 * * * *"   # 2분마다 실행 (UTC)
   workflow_dispatch:
 
 jobs:

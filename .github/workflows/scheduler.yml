@@ -15,6 +15,8 @@ jobs:
       # 현재 레포 체크아웃
       - name: Checkout repo
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # 필수
 
       # Node.js 세팅
       - name: Setup Node.js

@@ -11,50 +11,30 @@ jobs:
     env:
       OPENSKY_CLIENT_ID: ${{ vars.OPENSKY_CLIENT_ID }}
       OPENSKY_CLIENT_SECRET: ${{ vars.OPENSKY_CLIENT_SECRET }}
-      PAT_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # Personal Access Token
     steps:
-      - name: Checkout scheduler repo
+      # 현재 레포 체크아웃
+      - name: Checkout repo
         uses: actions/checkout@v3
 
+      # Node.js 세팅
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "18"
 
+      # 의존성 설치
       - name: Install dependencies
         run: npm install
 
+      # OpenSky fetch & save
       - name: Run OpenSky fetch script
-        run: node ./index.js  # index.js에서 ./data/latest.json 생성
+        run: node ./index.js  # ./data/latest.json 생성
 
-      # flight-data-repo checkout
-      - name: Checkout flight-data-repo
-        uses: actions/checkout@v3
-        with:
-          repository: MinJunKimsdaads/flight-data-repo
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          path: flight-data-repo
-
-      # 데이터 복사
-      - name: Copy JSON files to flight-data-repo
+      # Commit & push (현재 레포)
+      - name: Commit & Push
         run: |
-          cp ./data/*.json ./flight-data-repo/
-          cd flight-data-repo
-          # 오래된 파일 200개 초과 시 삭제
-          files=($(ls -1 *.json | sort))
-          if [ ${#files[@]} -gt 200 ]; then
-            delete_count=$((${#files[@]} - 200))
-            for ((i=0; i<delete_count; i++)); do
-              rm "${files[i]}"
-            done
-          fi
-
-      # Commit & push
-      - name: Commit & Push to flight-data-repo
-        run: |
-          cd flight-data-repo
           git config user.name "KMJ"
           git config user.email "aaeexx@naver.com"
-          git add *.json
+          git add data/*.json
           git commit -m "Update OpenSky data" || echo "No changes to commit"
           git push

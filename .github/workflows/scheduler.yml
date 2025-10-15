@@ -2,41 +2,56 @@ name: OpenSky Data Scheduler
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # 2분마다 실행 (UTC)
+    - cron: "*/5 * * * *"   # 5분마다 실행 (UTC)
   workflow_dispatch:
 
 jobs:
   fetch-and-save:
     runs-on: ubuntu-latest
+
     env:
       OPENSKY_CLIENT_ID: ${{ vars.OPENSKY_CLIENT_ID }}
       OPENSKY_CLIENT_SECRET: ${{ vars.OPENSKY_CLIENT_SECRET }}
+
     steps:
-      # 현재 레포 체크아웃
-      - name: Checkout repo
+      # ✅ 현재 레포 (스케줄러) 체크아웃
+      - name: Checkout current repo
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # 필수
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # Node.js 세팅
+      # ✅ Node.js 환경 세팅
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "18"
 
-      # 의존성 설치
+      # ✅ 의존성 설치
       - name: Install dependencies
         run: npm install
 
-      # OpenSky fetch & save
+      # ✅ OpenSky 데이터 가져와 저장
       - name: Run OpenSky fetch script
-        run: node ./index.js  # ./data/latest.json 생성
+        run: node ./index.js  # ./data/*.json 생성
 
-      # Commit & push (현재 레포)
-      - name: Commit & Push
+      # ✅ 데이터 저장용 타겟 레포에 푸시
+      - name: Commit & Push to data repository
+        env:
+          TARGET_REPO: "MinJunKimsdaads/flight-data-repo"
+          TARGET_BRANCH: "main"
+          GIT_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}    # 👈 Fine-grained PAT 필요
         run: |
-          git config user.name "KMJ"
-          git config user.email "aaeexx@naver.com"
+          git config --global user.name "KMJ"
+          git config --global user.email "aaeexx@naver.com"
+
+          # 타겟 레포 클론
+          git clone https://github.com/$TARGET_REPO.git target-repo
+          mkdir -p target-repo/data
+
+          # 새 데이터 복사
+          cp -r data/*.json target-repo/data/
+
+          cd target-repo
           git add data/*.json
-          git commit -m "Update OpenSky data" || echo "No changes to commit"
-          git push
+          git commit -m "Update OpenSky data ($(date '+%Y-%m-%d %H:%M:%S'))" || echo "No changes to commit"
+          git push https://KMJ:$GIT_TOKEN@github.com/$TARGET_REPO.git $TARGET_BRANCH

@@ -2,7 +2,7 @@ name: OpenSky Data Scheduler
 
 on:
   schedule:
-    - cron: "*/5 * * * *"   # 5분마다 실행 (UTC)
+    - cron: "*/5 * * * *"   # 5분마다 실행 (UTC 기준)
   workflow_dispatch:
 
 jobs:
@@ -14,13 +14,13 @@ jobs:
       OPENSKY_CLIENT_SECRET: ${{ vars.OPENSKY_CLIENT_SECRET }}
 
     steps:
-      # ✅ 현재 레포 (스케줄러) 체크아웃
-      - name: Checkout current repo
+      # ✅ 현재 레포(스케줄러) 체크아웃
+      - name: Checkout scheduler repo
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
-      # ✅ Node.js 환경 세팅
+      # ✅ Node.js 세팅
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -30,28 +30,33 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # ✅ OpenSky 데이터 가져와 저장
+      # ✅ OpenSky 데이터 fetch & 저장SS
       - name: Run OpenSky fetch script
         run: node ./index.js  # ./data/*.json 생성
 
-      # ✅ 데이터 저장용 타겟 레포에 푸시
-      - name: Commit & Push to data repository
+      # ✅ 타겟 레포로 데이터 푸시
+      - name: Commit & Push to target repository
         env:
-          TARGET_REPO: "MinJunKimsdaads/flight-data-repo"
+          TARGET_REPO: "MinJunKimsdaads/flight-data-repo"    # 👈 데이터 저장용 레포
           TARGET_BRANCH: "main"
-          GIT_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}    # 👈 Fine-grained PAT 필요
+          GIT_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}    # 👈 Fine-grained PAT (Contents: Read & Write)
         run: |
           git config --global user.name "KMJ"
           git config --global user.email "aaeexx@naver.com"
 
-          # 타겟 레포 클론
-          git clone https://github.com/$TARGET_REPO.git target-repo
+          echo "🔍 클론 중: https://github.com/${TARGET_REPO}.git"
+          git clone https://github.com/${TARGET_REPO}.git target-repo
           mkdir -p target-repo/data
 
-          # 새 데이터 복사
+          echo "📂 데이터 복사 중..."
           cp -r data/*.json target-repo/data/
 
           cd target-repo
           git add data/*.json
           git commit -m "Update OpenSky data ($(date '+%Y-%m-%d %H:%M:%S'))" || echo "No changes to commit"
-          git push https://KMJ:$GIT_TOKEN@github.com/$TARGET_REPO.git $TARGET_BRANCH
+
+          echo "🔐 Push URL 검사:"
+          echo "https://x-access-token:<TOKEN>@github.com/${TARGET_REPO}.git"
+
+          echo "🚀 푸시 중..."
+          git push https://x-access-token:${GIT_TOKEN}@github.com/${TARGET_REPO}.git $TARGET_BRANCH

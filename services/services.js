@@ -20,7 +20,8 @@ const getAccessToken = async () => {
   });
 
   if (!response.ok) throw new Error(`Token request failed: ${response.status}`);
-  return (await response.json()).access_token;
+  const data = await response.json();
+  return data.access_token;
 };
 
 // 모든 항공기 리스트 가져오기
@@ -36,21 +37,22 @@ const getAllAircraftList = async () => {
 export const saveJsonAndManage = async () => {
   const data = await getAllAircraftList();
   const time = data.time;
-  if (!time) throw new Error("time 값이 없습니다");
+  if (!time) throw new Error("time 값이 없습니다.");
 
   const dataDir = "./data/flight/";
-  fs.mkdirSync(dataDir, { recursive: true }); // 폴더 자동 생성
+  fs.mkdirSync(dataDir, { recursive: true });
 
   const filename = `${time}.json`;
   const filePath = path.join(dataDir, filename);
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
-
   console.log(`✅ 데이터 저장 완료: ${filename}`);
 
   // 오래된 파일 200개 초과 시 삭제
-  const files = fs.readdirSync(dataDir)
+  const files = fs
+    .readdirSync(dataDir)
     .filter(f => f.endsWith(".json"))
-    .sort(); // 파일명 기준 정렬 (시간 순)
+    .sort();
+
   if (files.length > 200) {
     const deleteCount = files.length - 200;
     for (let i = 0; i < deleteCount; i++) {

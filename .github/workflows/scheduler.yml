@@ -30,9 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # ✅ OpenSky 데이터 fetch & 저장SS
+      # ✅ OpenSky 데이터 fetch & 저장
       - name: Run OpenSky fetch script
-        run: node ./index.js  # ./data/*.json 생성
+        run: node ./index.js  # ./data/flight/*.json 생성
 
       # ✅ 타겟 레포로 데이터 푸시
       - name: Commit & Push to target repository
@@ -46,17 +46,14 @@ jobs:
 
           echo "🔍 클론 중: https://github.com/${TARGET_REPO}.git"
           git clone https://github.com/${TARGET_REPO}.git target-repo
-          mkdir -p target-repo/data
+          mkdir -p target-repo/data/flight
 
           echo "📂 데이터 복사 중..."
-          cp -r data/*.json target-repo/data/
+          cp -r data/flight/*.json target-repo/data/flight/
 
           cd target-repo
-          git add data/*.json
+          git add data/flight/*.json
           git commit -m "Update OpenSky data ($(date '+%Y-%m-%d %H:%M:%S'))" || echo "No changes to commit"
-
-          echo "🔐 Push URL 검사:"
-          echo "https://x-access-token:<TOKEN>@github.com/${TARGET_REPO}.git"
 
           echo "🚀 푸시 중..."
           git push https://x-access-token:${GIT_TOKEN}@github.com/${TARGET_REPO}.git $TARGET_BRANCH

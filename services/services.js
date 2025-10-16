@@ -38,7 +38,7 @@ export const saveJsonAndManage = async () => {
   const time = data.time;
   if (!time) throw new Error("time 값이 없습니다");
 
-  const dataDir = "./data";
+  const dataDir = "./data/flight";
   fs.mkdirSync(dataDir, { recursive: true }); // 폴더 자동 생성
 
   const filename = `${time}.json`;

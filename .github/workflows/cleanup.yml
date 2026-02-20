@@ -1,0 +1,54 @@
+name: Flight Data Cleanup
+
+on:
+  schedule:
+    - cron: "0 0 * * *"   # 매일 자정 (UTC 기준 = 한국시간 오전 9시)
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ✅ 스케줄러 레포 체크아웃 (cleanup.js 사용을 위해)
+      - name: Checkout scheduler repo
+        uses: actions/checkout@v3
+
+      # ✅ Node.js 세팅
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      # ✅ 의존성 설치
+      - name: Install dependencies
+        run: npm install
+
+      # ✅ 타겟 레포 클론
+      - name: Clone target repository
+        env:
+          TARGET_REPO: "MinJunKimsdaads/flight-data-repo"
+          GIT_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+        run: |
+          git clone https://x-access-token:${GIT_TOKEN}@github.com/${TARGET_REPO}.git target-repo
+
+      # ✅ 오래된 파일 정리 (200개 초과분 삭제)
+      - name: Run cleanup script
+        run: DATA_DIR="./target-repo/data/flight/" node ./cleanup.js
+
+      # ✅ 정리된 결과를 타겟 레포에 푸시
+      - name: Commit & Push cleaned data to target repository
+        env:
+          TARGET_REPO: "MinJunKimsdaads/flight-data-repo"
+          TARGET_BRANCH: "main"
+          GIT_TOKEN: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "KMJ"
+          git config --global user.email "aaeexx@naver.com"
+
+          cd target-repo
+          git add data/flight/
+          git commit -m "Cleanup: 오래된 비행 데이터 정리 ($(date '+%Y-%m-%d %H:%M:%S'))" || echo "No changes to commit"
+
+          echo "🚀 푸시 중..."
+          git push https://x-access-token:${GIT_TOKEN}@github.com/${TARGET_REPO}.git $TARGET_BRANCH
